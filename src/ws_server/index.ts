@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { handlePlayer } from '../db/db';
+import { handlePlayer, updateWinners } from '../db/players';
 
 const WS_PORT = 3000;
 
@@ -16,10 +16,16 @@ wsServer.on('connection', (ws: WebSocket) => {
       case 'reg':
         responseMessage = JSON.stringify(handlePlayer(message));
         // console.log(`responseMessage ${responseMessage}`);
+        ws.send(responseMessage);
+        responseMessage = JSON.stringify(updateWinners());
+        ws.send(responseMessage);
         break;
       case 'update_winners':
+        responseMessage = JSON.stringify(updateWinners());
+        ws.send(responseMessage);
         break;
       case 'create_room':
+        // создать и добавить туда игрока
         break;
       case 'add_user_to_room':
         break;
@@ -44,7 +50,7 @@ wsServer.on('connection', (ws: WebSocket) => {
     }
     // отправить клиенту ответ
     console.log(`клиенту будет отправлено ${responseMessage}`);
-    ws.send(responseMessage);
+    // ws.send(responseMessage);
   });
 
   ws.on('close', () => {
