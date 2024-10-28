@@ -1,4 +1,4 @@
-import { v4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { players, currentPlayer } from './db';
 
 export function handlePlayer(message: string): {type: string, data: string, id: number}  {
@@ -36,7 +36,7 @@ export function handlePlayer(message: string): {type: string, data: string, id: 
   } else {
     // внести в базу нового игрока
     players.push({
-      index: v4(),
+      index: randomUUID(),
       name: newPlayer.name,
       password: newPlayer.password,
       wins: 0,

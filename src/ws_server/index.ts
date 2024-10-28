@@ -25,11 +25,11 @@ wsServer.on('connection', (ws: WebSocket) => {
         responseMessage = JSON.stringify(updateWinners());
         ws.send(responseMessage);
         break;
-      case 'update_winners':
-        // обновить список победителей
-        responseMessage = JSON.stringify(updateWinners());
-        ws.send(responseMessage);
-        break;
+      // case 'update_winners':
+      //   // обновить список победителей
+      //   responseMessage = JSON.stringify(updateWinners());
+      //   ws.send(responseMessage);
+      //   break;
       case 'create_room':
         // создать и добавить туда игрока
         createRoom();
@@ -61,7 +61,7 @@ wsServer.on('connection', (ws: WebSocket) => {
         break;
     }
     // отправить клиенту ответ
-    console.log(`клиенту будет отправлено ${responseMessage}`);
+    // console.log(`клиенту будет отправлено ${responseMessage}`);
     // ws.send(responseMessage);
   });
 

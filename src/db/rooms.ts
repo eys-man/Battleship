@@ -1,9 +1,9 @@
-import { v4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { currentPlayer, currentRoom, rooms } from './db';
 
 //------ создать комнату ---------------
 export function createRoom(): void {
-  const newRoomId = v4();
+  const newRoomId = randomUUID();
   rooms.push({ roomId: newRoomId, roomUsers: []});
   rooms[rooms.length -1].roomUsers.push({
     name: currentPlayer.name,

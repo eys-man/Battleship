@@ -15,7 +15,6 @@
     "devDependencies": {
         "@eslint/js": "^9.12.0",
         "@types/supertest": "^6.0.2",
-        "@types/uuid": "^10.0.0",
         "@types/ws": "^8.5.12",
         "@typescript-eslint/eslint-plugin": "^8.11.0",
         "@typescript-eslint/parser": "^8.11.0",
@@ -23,7 +22,6 @@
         "eslint-config-prettier": "^9.1.0",
         "eslint-define-config": "^2.1.0",
         "eslint-plugin-import": "^2.31.0",
-        "globals": "^15.11.0",
         "nodemon": "^3.1.7",
         "prettier": "^3.3.3",
         "supertest": "^7.0.0",
@@ -35,7 +33,6 @@
     },
     "dependencies": {
         "dotenv": "^16.4.5",
-        "uuid": "^10.0.0",
         "ws": "^8.18.0"
     }
 }
