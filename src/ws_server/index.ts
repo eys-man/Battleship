@@ -16,26 +16,22 @@ wsServer.on('connection', (ws: WebSocket) => {
     switch (parsedMessage.type) {
       case 'reg':
         responseMessage = JSON.stringify(handlePlayer(message));
-        // console.log(`responseMessage ${responseMessage}`);
         ws.send(responseMessage);
         // обновить список доступных комнат с одним челом
-        responseMessage = JSON.stringify(updateRoom());
-        ws.send(responseMessage);
+        // responseMessage = JSON.stringify(updateRoom());
+        wsServer.clients.forEach((i) => i.send(JSON.stringify(updateRoom())));
         // обновить список победителей
-        responseMessage = JSON.stringify(updateWinners());
-        ws.send(responseMessage);
+        // responseMessage = JSON.stringify(updateWinners());
+        wsServer.clients.forEach((i) =>
+          i.send(JSON.stringify(updateWinners())),
+        );
         break;
-      // case 'update_winners':
-      //   // обновить список победителей
-      //   responseMessage = JSON.stringify(updateWinners());
-      //   ws.send(responseMessage);
-      //   break;
       case 'create_room':
         // создать и добавить туда игрока
         createRoom();
         // обновить список доступных комнат с одним челом
-        responseMessage = JSON.stringify(updateRoom());
-        ws.send(responseMessage);
+        // responseMessage = JSON.stringify(updateRoom());
+        wsServer.clients.forEach((i) => i.send(JSON.stringify(updateRoom())));
         break;
       case 'add_user_to_room':
         console.log(`индекс комнаты ${parsedMessage.data}`);

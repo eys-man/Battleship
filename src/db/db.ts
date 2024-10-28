@@ -18,6 +18,6 @@ export const currentPlayer: Player = {
   name: '',
   password: '',
   wins: -1,
-}
+};
 
-export const currentRoom = {id: '', host: ''}; 
+export const currentRoom = { id: '', host: '' };

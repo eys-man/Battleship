@@ -1,7 +1,11 @@
 import { randomUUID } from 'crypto';
 import { players, currentPlayer } from './db';
 
-export function handlePlayer(message: string): {type: string, data: string, id: number}  {
+export function handlePlayer(message: string): {
+  type: string;
+  data: string;
+  id: number;
+} {
   // разобрать строку
   console.log(`message: ${message}`);
   const parsedMessage = JSON.parse(message);
@@ -15,10 +19,13 @@ export function handlePlayer(message: string): {type: string, data: string, id: 
     errorText: ``,
   };
 
-  console.log(`newPlayer: name=${newPlayer.name}, password=${newPlayer.password}`);
+  console.log(
+    `newPlayer: name=${newPlayer.name}, password=${newPlayer.password}`,
+  );
   // проверить на существование в базе
-  let i = players.findIndex((player) => player.name === newPlayer.name)
-  if (i !== -1 ) { // если нашли в базе с таким именем
+  let i = players.findIndex((player) => player.name === newPlayer.name);
+  if (i !== -1) {
+    // если нашли в базе с таким именем
     if (newPlayer.password === players[i].password) {
       // подготовить данные для выдачи клиенту
       data.index = players[i].index as string;
@@ -40,7 +47,7 @@ export function handlePlayer(message: string): {type: string, data: string, id: 
       name: newPlayer.name,
       password: newPlayer.password,
       wins: 0,
-    }); 
+    });
 
     i = players.length - 1; // его индекс в массиве (базе игроков)
 
@@ -52,34 +59,34 @@ export function handlePlayer(message: string): {type: string, data: string, id: 
     currentPlayer.name = players[i].name;
     currentPlayer.wins = players[i].wins;
     currentPlayer.password = players[i].password;
-  };
+  }
 
   console.log(`возвращаю: ${data}`);
 
   return {
     type: 'reg',
     data: JSON.stringify(data),
-    id: 0
+    id: 0,
   };
 }
 
 export function updateWinners() {
   // создать список победителей
-  const winners: { name: string, wins: number }[] = [];
-  
-  for(let i = 0; i < players.length; i++)
+  const winners: { name: string; wins: number }[] = [];
+
+  for (let i = 0; i < players.length; i++)
     winners.push({ name: players[i].name, wins: players[i].wins as number });
 
   // отсортировать массив победителей
   winners.sort((a, b) => {
-    if(a.wins > b.wins) return 1;
-    else if(a.wins < b.wins) return -1;
+    if (a.wins > b.wins) return 1;
+    else if (a.wins < b.wins) return -1;
     return 0;
   });
 
   return {
     type: 'update_winners',
     data: JSON.stringify(winners),
-    id:0,
+    id: 0,
   };
 }
