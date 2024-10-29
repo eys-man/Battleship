@@ -4,6 +4,7 @@ import { updateWinners } from '../db/players';
 import { updateRoom } from '../db/rooms';
 import { Player, players, rooms } from '../db/db';
 import { users } from '../db/db';
+import { createGame } from '../db/game';
 
 const WS_PORT = 3000;
 
@@ -31,6 +32,9 @@ wsServer.on('connection', (ws: WebSocket) => {
     let indexRoomWhere = -1;
     let indexRoomFrom = -1;
     let index = '';
+
+    let firstPlayer = '';
+    let secondPlayer = '';
 
     // разобрать тип запроса
     switch (parsedMessage.type) {
@@ -167,6 +171,9 @@ wsServer.on('connection', (ws: WebSocket) => {
         console.log(`добавляем в комнату игрока ${users.get(ws).name}`);
         rooms[indexRoomWhere].roomUsers.push(users.get(ws));
 
+        firstPlayer = rooms[indexRoomWhere].roomUsers[0].index as string;
+        secondPlayer = rooms[indexRoomWhere].roomUsers[0].index as string;
+
         console.log(`в комнате ${JSON.parse(parsedMessage.data).indexRoom} сейчас находятся ${rooms[indexRoomWhere].roomUsers[0].name} и ${rooms[indexRoomWhere].roomUsers[1].name}`);
 
         // удалить комнату, откуда чел пришел. если у него не было комнаты то не удаляем)
@@ -179,9 +186,21 @@ wsServer.on('connection', (ws: WebSocket) => {
           user.send(JSON.stringify(updateRoom()));
           console.log(`щяс всего ${rooms.length} комнат`);
         }
+
+        // отправить челам
+        index = randomUUID(); // idGame
+        ws.send(JSON.stringify( createGame(index, firstPlayer ) ));
+        for (const [w, player] of users.entries()) {
+          if (player.index === secondPlayer ) {
+            console.log(`найден второй игрок`);
+            w.send(JSON.stringify( createGame(index, secondPlayer ) ));
+          }
+        }
+
         break;
       //-----------------------------------------------------
       case 'create_game':
+
         break;
       case 'update_room':
         break;
@@ -214,3 +233,4 @@ wsServer.on('connection', (ws: WebSocket) => {
 });
 
 console.log(`Start WebSocket server on the: ${WS_PORT} port`);
+

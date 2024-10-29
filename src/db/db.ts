@@ -17,6 +17,12 @@ export interface User {
   player?: Player;
 }
 
+export interface Game {
+  idGame: string;
+  player?: Player[];
+}
+
 export const rooms: Room[] = [];
 export const players: Player[] = [];
 export const users = new Map();
+export const games = new Map();
