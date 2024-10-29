@@ -2,8 +2,7 @@ import { randomUUID } from 'crypto';
 import { WebSocket, WebSocketServer } from 'ws';
 import { updateWinners } from '../db/players';
 import { updateRoom } from '../db/rooms';
-import { Player, players, rooms } from '../db/db';
-import { users } from '../db/db';
+import { Player, Ship, players, rooms, users } from '../db/db';
 import { createGame } from '../db/game';
 
 const WS_PORT = 3000;
@@ -15,6 +14,10 @@ wsServer.on('connection', (ws: WebSocket) => {
   let newPlayer: Player = {
     name: '',
   };
+
+  // let newShip: Ship = {
+  //   name: '',
+  // };
 
   users.set(ws, newPlayer); // добавить пользователя-клиента (пока без имени игрока)
   let responseMessage: string;
@@ -28,10 +31,14 @@ wsServer.on('connection', (ws: WebSocket) => {
       error: false,
       errorText: ``,
     };
+
+    let ships: Ship[] = [];
     let indexPlayer = -1;
     let indexRoomWhere = -1;
     let indexRoomFrom = -1;
+
     let index = '';
+    // let gameId = '';
 
     let firstPlayer = '';
     let secondPlayer = '';
@@ -102,17 +109,16 @@ wsServer.on('connection', (ws: WebSocket) => {
           ws: ws,
         });
 
-        console.log(`число users = ${users.size}`);
+        // console.log(`число users = ${users.size}`);
 
         // обновить список комнат
-        for (const user of users.keys()) {
+        for (const user of users.keys())
           user.send(JSON.stringify(updateRoom()));
-        }
 
         // обновить список победителей
-        for (const user of users.keys()) {
+        for (const user of users.keys())
           user.send(JSON.stringify(updateWinners()));
-        }
+
         break;
       //-----------------------------------------------------
       case 'create_room':
@@ -134,32 +140,25 @@ wsServer.on('connection', (ws: WebSocket) => {
           index: users.get(ws).index,
         });
 
-        console.log(
-          `всего комнат: ${rooms.length},
-          в этой комнате находится ${JSON.stringify(rooms[rooms.length - 1].roomUsers[0].name)}`,
-        );
-
         // обновить список доступных комнат
-        for (const user of users.keys()) {
+        for (const user of users.keys())
           user.send(JSON.stringify(updateRoom()));
-        }
 
         // обновить список победителей
-        for (const user of users.keys()) {
+        for (const user of users.keys())
           user.send(JSON.stringify(updateWinners()));
-        }
+
         break;
       //-----------------------------------------------------
       case 'add_user_to_room':
         console.log(`add_user_to_room: индекс комнаты ${JSON.parse(parsedMessage.data).indexRoom}`);
 
+        // индекс комнаты (в массиве) откуда чел уходит
         indexRoomWhere = rooms.findIndex((i) => i.roomId === JSON.parse(parsedMessage.data).indexRoom);
-        console.log(`вот в эту -> ${indexRoomWhere}`);
-        // из какой комнаты чел переходит. ее удаляем
+        // из какой комнаты чел переходит - ее будем удалять
         indexRoomFrom = rooms.findIndex((i) => i.roomUsers[0].index === users.get(ws).index);
-        console.log(`вот отсюда -> ${indexRoomFrom}`);
 
-        if (indexRoomFrom !== -1) console.log(`имя чела в базах комнаты и клиента: ${rooms[indexRoomFrom].roomUsers[0].name} <--> ${users.get(ws).name}`);
+        if (indexRoomFrom !== -1) console.log(`имя чела в базах комнаты и клиента: ${rooms[indexRoomFrom].roomUsers[0].name} <--> ${users.get(ws).name} должно быть одинаковым`);
 
         if ( indexRoomFrom === indexRoomWhere) {
           console.log(`нельзя зайти в свою комнату`);
@@ -167,12 +166,12 @@ wsServer.on('connection', (ws: WebSocket) => {
         }
 
         // найти игрока этого клиента
-        indexPlayer = users.get(ws).index;
+        index = users.get(ws).index;
         console.log(`добавляем в комнату игрока ${users.get(ws).name}`);
         rooms[indexRoomWhere].roomUsers.push(users.get(ws));
 
         firstPlayer = rooms[indexRoomWhere].roomUsers[0].index as string;
-        secondPlayer = rooms[indexRoomWhere].roomUsers[0].index as string;
+        secondPlayer = rooms[indexRoomWhere].roomUsers[1].index as string;
 
         console.log(`в комнате ${JSON.parse(parsedMessage.data).indexRoom} сейчас находятся ${rooms[indexRoomWhere].roomUsers[0].name} и ${rooms[indexRoomWhere].roomUsers[1].name}`);
 
@@ -182,29 +181,45 @@ wsServer.on('connection', (ws: WebSocket) => {
         rooms.splice(indexRoomWhere, 1);
 
         // обновить список доступных комнат
-        for (const user of users.keys()) {
+        for (const user of users.keys())
           user.send(JSON.stringify(updateRoom()));
-          console.log(`щяс всего ${rooms.length} комнат`);
-        }
 
         // отправить челам
         index = randomUUID(); // idGame
-        ws.send(JSON.stringify( createGame(index, firstPlayer ) ));
-        for (const [w, player] of users.entries()) {
-          if (player.index === secondPlayer ) {
-            console.log(`найден второй игрок`);
+
+        if( users.get(ws).index !== firstPlayer ) {
+          secondPlayer = firstPlayer;
+          firstPlayer = users.get(ws).index;
+        };
+
+        ws.send(JSON.stringify( createGame(index, firstPlayer) ));
+        for (const [w, player] of users.entries())
+          if (player.index === secondPlayer )
             w.send(JSON.stringify( createGame(index, secondPlayer ) ));
-          }
-        }
 
         break;
       //-----------------------------------------------------
-      case 'create_game':
-
-        break;
-      case 'update_room':
-        break;
       case 'add_ships':
+        // console.log(` add_ship: ${JSON.parse(parsedMessage.data)}`);
+
+        // gameId = JSON.parse(parsedMessage.data).gameId;
+        ships = JSON.parse(parsedMessage.data).ships;
+        indexPlayer = JSON.parse(parsedMessage.data).indexPlayer;
+
+        // console.log(`gameId = ${gameId}, indexPlayer = ${indexPlayer}, свой index = ${users.get(ws).index}`);
+
+        if ( indexPlayer === users.get(ws).index ) {
+
+          ws.send(JSON.stringify({
+            type: "start_game",
+            data: JSON.stringify({
+              ships: ships,
+              currentPlayerIndex: users.get(ws).index,
+            }),
+            id: 0,
+          }));
+        }
+
         break;
       case 'start_game':
         break;
@@ -223,10 +238,6 @@ wsServer.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     // удалить из базы клиентов
-    console.log(
-      `щяс будет удален клиент с именем ${users.get(ws).name} и индексом ${users.get(ws).index}.\n
-      но в базе зареганых игроков останется`,
-    );
     users.delete(ws);
     console.log(`Player was disconnected`);
   });
