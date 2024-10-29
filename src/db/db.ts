@@ -1,3 +1,5 @@
+import { WebSocket } from 'ws';
+
 export interface Player {
   index?: string;
   name: string;
@@ -10,14 +12,11 @@ export interface Room {
   roomUsers: Player[];
 }
 
+export interface User {
+  ws: WebSocket;
+  player?: Player;
+}
+
 export const rooms: Room[] = [];
 export const players: Player[] = [];
-
-export const currentPlayer: Player = {
-  index: '',
-  name: '',
-  password: '',
-  wins: -1,
-};
-
-export const currentRoom = { id: '', host: '' };
+export const users = new Map();
