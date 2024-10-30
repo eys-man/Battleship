@@ -27,10 +27,23 @@ export interface Ship {
   type: 'small' | 'medium' | 'large' | 'huge',
 }
 
+export interface Game {
+  // gameId: string,
+  firstPlayer: {
+    isReady: boolean,
+    playerId: string,
+  }
+  secondPlayer: {
+    isReady: boolean,
+    playerId: string,
+  }
+}
+
 export const rooms: Room[] = [];
 export const players: Player[] = [];
 export const users = new Map();
-export const ships = new Map();
+export const ships: Ship[] = [];
+export const games = new Map();
 
 // заполнить нулями массив (типа не плавает еще никто)
 export const gameBoard = new Array(10).fill(new Array(10).fill(0));
