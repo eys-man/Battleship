@@ -15,10 +15,6 @@ wsServer.on('connection', (ws: WebSocket) => {
     name: '',
   };
 
-  // let newShip: Ship = {
-  //   name: '',
-  // };
-
   users.set(ws, newPlayer); // добавить пользователя-клиента (пока без имени игрока)
   let responseMessage: string;
 
@@ -113,8 +109,6 @@ wsServer.on('connection', (ws: WebSocket) => {
           ws: ws,
         });
 
-        // console.log(`число users = ${users.size}`);
-
         // обновить список комнат
         for (const user of users.keys())
           user.send(JSON.stringify(updateRoom()));
@@ -170,8 +164,6 @@ wsServer.on('connection', (ws: WebSocket) => {
         }
 
         // найти игрока этого клиента
-        // index = users.get(ws).index;
-        console.log(`добавляем в комнату игрока ${users.get(ws).name}`);
         rooms[indexRoomWhere].roomUsers.push(users.get(ws));
 
         firstPlayer = rooms[indexRoomWhere].roomUsers[0].index as string;
@@ -205,9 +197,6 @@ wsServer.on('connection', (ws: WebSocket) => {
             playerId: secondPlayer,
           },
         });
-        // console.log(`щяс ${games.size} игр. в игре находятся`);
-        // console.log(`${games.get(gameId).firstPlayer.playerId}`);
-        // console.log(`${games.get(gameId).secondPlayer.playerId}`);
 
         // отправить челам
         ws.send(JSON.stringify( createGame(gameId, firstPlayer) ));
@@ -230,23 +219,9 @@ wsServer.on('connection', (ws: WebSocket) => {
         if ( index === users.get(ws).index) {
           ships.push(JSON.parse(parsedMessage.data).ships);
 
-          // начать игру
-          // ws.send(JSON.stringify({
-          //   type: "start_game",
-          //   data: JSON.stringify({
-          //     ships: ships,
-          //     currentPlayerIndex: users.get(ws).index,
-          //   }),
-          //   id: 0,
-          // }));
-
           // записать готовность чела играть
           game = games.get(gameId);
-          // console.log(`записать готовность чела играть\nчисло игр в мапе games: ${games.size}`);
-          // console.log(`index игрока = ${index}`);
-          // games.forEach((value, key) => console.log(`key ${JSON.stringify(key)}, value ${JSON.stringify(value)} `));
 
-          // console.log(`эту игру щяс готовим ${JSON.stringify(game)}`);
           if (game.firstPlayer.playerId === index) game.firstPlayer.isReady = true;
           else game.secondPlayer.isReady = true;
 
@@ -274,7 +249,7 @@ wsServer.on('connection', (ws: WebSocket) => {
             }));
 
             // затем его соперник отправит корабли
-            // найти индекс соперника (осторожно! значение index при этом поменяем)
+            // найти индекс соперника (значение index при этом поменяем)
             if (game.firstPlayer.playerId === index) // значит первого уже отправили
               index = game.secondPlayer.playerId;
             else // значит второго отправили
@@ -314,4 +289,3 @@ wsServer.on('connection', (ws: WebSocket) => {
 });
 
 console.log(`Start WebSocket server on the: ${WS_PORT} port`);
-

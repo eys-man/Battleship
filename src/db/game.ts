@@ -9,11 +9,3 @@ export function createGame(idGame: string, idPlayer: string) {
     id: 0,
   }
 }
-
-// export function startGame(idPlayer: string, ships: string) {
-//   return {
-//     type: "start_game", //send for both players in the room, after they are connected to the room
-//     data: ships,
-//     id: 0,
-//   }
-// }
