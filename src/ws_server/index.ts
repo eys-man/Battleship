@@ -2,8 +2,8 @@ import { randomUUID } from 'crypto';
 import { WebSocket, WebSocketServer } from 'ws';
 import { updateWinners } from '../db/players';
 import { updateRoom } from '../db/rooms';
-import { Game, Player, games, players, rooms, ships, users } from '../db/db';
-import { createGame } from '../db/game';
+import { Game, Player, games, players, rooms, users } from '../db/db';
+import { attack, createGame, startGame } from '../db/game';
 
 const WS_PORT = 3000;
 
@@ -28,19 +28,29 @@ wsServer.on('connection', (ws: WebSocket) => {
       errorText: ``,
     };
 
-    // let ships: Ship[] = [];
     let indexPlayer = -1;
     let indexRoomWhere = -1;
     let indexRoomFrom = -1;
 
     let index = '';
-    
+    let enemyId = '';
     let firstPlayer = '';
     let secondPlayer = '';
     let gameId = '';
     let game: Game = {
-      firstPlayer: { isReady: false, playerId: ``},
-      secondPlayer: { isReady: false, playerId: ``},
+      currentPlayer: '',
+      firstPlayer: {
+        isReady: false,
+        playerId: ``,
+        ships: [],
+        battleField: new Array(10).fill(new Array<number>(10).fill(0)),
+      },
+      secondPlayer: {
+        isReady: false,
+        playerId: ``,
+        ships: [],
+        battleField: new Array(10).fill(new Array<number>(10).fill(0))
+      },
     };
 
     // разобрать тип запроса
@@ -173,7 +183,7 @@ wsServer.on('connection', (ws: WebSocket) => {
 
         // удалить комнату, откуда чел пришел. если у него не было комнаты то не удаляем)
         if (indexRoomFrom !== -1) rooms.splice(indexRoomFrom, 1);
-        // удалить комнату, куда чел пришел. там их уже двое, надо начинать игру
+        // удалить комнату, куда чел пришел. там их уже двое
         rooms.splice(indexRoomWhere, 1);
 
         // обновить список доступных комнат
@@ -188,13 +198,18 @@ wsServer.on('connection', (ws: WebSocket) => {
         gameId = randomUUID(); // idGame
 
         games.set(gameId, {
+          currentPlayer: firstPlayer,
           firstPlayer: {
             isReady: false,
             playerId: firstPlayer,
+            ships: [],
+            battleField: new Array(10).fill(new Array<number>(10).fill(0)),
           },
           secondPlayer: {
             isReady: false,
             playerId: secondPlayer,
+            ships: [],
+            battleField: new Array(10).fill(new Array<number>(10).fill(0)),
           },
         });
 
@@ -207,71 +222,152 @@ wsServer.on('connection', (ws: WebSocket) => {
         break;
       //-----------------------------------------------------
       case 'add_ships':
-        // console.log(` add_ship: ${JSON.parse(parsedMessage.data)}`);
-
         gameId = JSON.parse(parsedMessage.data).gameId;
-        // ships = JSON.parse(parsedMessage.data).ships;
         index = JSON.parse(parsedMessage.data).indexPlayer; // index игрока, string
         
-        console.log(`gameId = ${gameId}, indexPlayer = ${index}, свой index = ${users.get(ws).index}`);
-        console.log(`число игр ${games.size}`);
-
         if ( index === users.get(ws).index) {
-          ships.push(JSON.parse(parsedMessage.data).ships);
-
           // записать готовность чела играть
           game = games.get(gameId);
-
-          if (game.firstPlayer.playerId === index) game.firstPlayer.isReady = true;
-          else game.secondPlayer.isReady = true;
+          if (game.firstPlayer.playerId === index) {
+            game.firstPlayer.isReady = true;
+            for ( const ship of JSON.parse(parsedMessage.data).ships)
+              game.firstPlayer.ships.push(ship);
+          } else {
+            game.secondPlayer.isReady = true;
+            for ( const ship of JSON.parse(parsedMessage.data).ships)
+              game.secondPlayer.ships.push(ship);
+          }
 
           games.set(gameId, game);
-          games.forEach((value, key) => console.log(`key ${JSON.stringify(key)}, value ${JSON.stringify(value)} `));
 
           // если все готовы, начинаем
           if (games.get(gameId).firstPlayer.isReady && games.get(gameId).secondPlayer.isReady ) {
-            // сначала отправит этот чел "старт" с присланными кораблями
-            ws.send(JSON.stringify({
-              type: "start_game",
-              data: JSON.stringify({
-                ships: ships.pop(),
-                currentPlayerIndex: index,
-              }),
-              id: 0,
-            }));
-            // ход тоже будет его
-            ws.send(JSON.stringify({
-              type: "turn",
-              data: JSON.stringify({
-                currentPlayerIndex: index,
-              }),
-              id: 0,
-            }));
-
-            // затем его соперник отправит корабли
-            // найти индекс соперника (значение index при этом поменяем)
-            if (game.firstPlayer.playerId === index) // значит первого уже отправили
-              index = game.secondPlayer.playerId;
-            else // значит второго отправили
-              index = game.firstPlayer.playerId;
-
-            // найти сокет соперника и отправить его корабли
+            // сначала отправляет корабли первый игрок
             for (const [w, player] of users.entries())
-              if (player.index === index )
+              if (player.index === game.firstPlayer.playerId ) {
                 w.send(JSON.stringify({
                   type: "start_game",
                   data: JSON.stringify({
-                    ships: ships.pop(),
-                    currentPlayerIndex: index,
+                    ships: game.firstPlayer.ships,
+                    currentPlayerIndex: game.firstPlayer.playerId,
                   }),
                   id: 0,
                 }));
+
+                // ход тоже будет его
+                w.send(JSON.stringify({
+                  type: "turn",
+                  data: JSON.stringify({
+                    currentPlayerIndex: game.firstPlayer.playerId,
+                  }),
+                  id: 0,
+                }));
+              }
+            // корабли отправляет второй игрок
+            for (const [w, player] of users.entries())
+              if (player.index === game.secondPlayer.playerId ) {
+                w.send(JSON.stringify({
+                  type: "start_game",
+                  data: JSON.stringify({
+                    ships: game.secondPlayer.ships,
+                    currentPlayerIndex: game.secondPlayer.playerId,
+                  }),
+                  id: 0,
+                }));
+
+                // ход будет соперника
+                // w.send(JSON.stringify({
+                //   type: "turn",
+                //   data: JSON.stringify({
+                //     currentPlayerIndex: game.secondPlayer.playerId,
+                //   }),
+                //   id: 0,
+                // }));
+              }
+
+            // заполнить поля игроков
+            startGame(gameId);
           }
         }
         break;
       //-----------------------------------------------------
       case 'attack':
+        gameId = JSON.parse(parsedMessage.data).gameId;
+        index = JSON.parse(parsedMessage.data).indexPlayer; // index игрока, string
+        
+        game = games.get(gameId);
+
+        enemyId = game.firstPlayer.playerId === index ?
+          game.secondPlayer.playerId :
+          game.firstPlayer.playerId;
+
+        if ( index === users.get(ws).index) {
+          ws.send(JSON.stringify({
+            type: "turn",
+            data: JSON.stringify({
+              currentPlayerIndex: index,
+            }),
+            id: 0,
+          }));
+
+          switch ( attack(gameId, index, JSON.parse(parsedMessage.data).x, JSON.parse(parsedMessage.data).y)) {
+            case 'miss':
+              ws.send(JSON.stringify({
+                type: "attack",
+                data: JSON.stringify({
+                  position: {
+                      x: JSON.parse(parsedMessage.data).x,
+                      y: JSON.parse(parsedMessage.data).y,
+                  },
+                  currentPlayer: index,
+                  status: "miss",
+                }),
+                id: 0,
+              }));
+              // передать ход противнику
+              ws.send(JSON.stringify({
+                type: "turn",
+                data: JSON.stringify({
+                  // currentPlayerIndex: index,
+                  currentPlayerIndex: enemyId,
+                }),
+                id: 0,
+              }));
+
+              game.currentPlayer = enemyId;
+
+              break;
+            case 'shot':
+              ws.send(JSON.stringify({
+                type: "attack",
+                data: JSON.stringify({
+                  position: {
+                      x: JSON.parse(parsedMessage.data).x,
+                      y: JSON.parse(parsedMessage.data).y,
+                  },
+                  currentPlayer: index,
+                  status: "shot",
+                }),
+                id: 0,
+              }));
+              // стрелять еще раз
+              ws.send(JSON.stringify({
+                type: "turn",
+                data: JSON.stringify({
+                  // currentPlayerIndex: enemyId,
+                  currentPlayerIndex: index,
+                }),
+                id: 0,
+              }));
+              break;
+            case null:
+              break;
+            default:
+              break;
+          }
+        }
         break;
+      //-------------------------------------------------------------
       case 'randomAttack':
         break;
       case 'finish':

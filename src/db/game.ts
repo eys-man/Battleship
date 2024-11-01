@@ -1,3 +1,5 @@
+import { games } from './db';
+
 export function createGame(idGame: string, idPlayer: string) {
   return {
     type: "create_game", //send for both players in the room, after they are connected to the room
@@ -8,4 +10,74 @@ export function createGame(idGame: string, idPlayer: string) {
         }),
     id: 0,
   }
+}
+
+//-----------------------------------------------------------------------------------
+
+export function startGame(idGame: string) {
+  console.log(`START GAME`);
+
+  const field1 = games.get(idGame).firstPlayer.battleField;
+  const field2 = games.get(idGame).secondPlayer.battleField;
+
+  const ships1 = games.get(idGame).firstPlayer.ships;
+  const ships2 = games.get(idGame).secondPlayer.ships;
+
+  // 1 - это там стоят  нетронутые части кораблей. туда стрелять надо)
+  // 0 - чистая вода
+  // -1 - туда уже стрелял (в воду, промазал)
+  // 2 - подбил
+  // 3 - прибил
+
+  for (const ship of ships1) {
+    const x0 = ship.position.x;
+    const y0 = ship.position.y;
+    for (let i = 0; i < ship.length; i++) {
+      if (ship.direction === true) {
+        field1[x0] = field1[x0].with( y0+i, 1);
+      } else {
+        field1[x0+i] = field1[x0+i].with( y0, 1);
+      }
+    }
+  };
+
+  for (const ship of ships2) {
+    const x0 = ship.position.x;
+    const y0 = ship.position.y;
+    for (let i = 0; i < ship.length; i++) {
+      if (ship.direction === true) {
+        field2[x0] = field2[x0].with( y0+i, 1);
+      } else {
+        field2[x0+i] = field2[x0+i].with( y0, 1);
+      }
+    }
+  };
+}
+
+//-----------------------------------------------------------------------
+
+export function attack(idGame: string, idPlayer: string, x: number, y: number) {
+  let enemyBattleField: number[][] = [];
+
+  if (games.get(idGame).firstPlayer.playerId === idPlayer)
+    enemyBattleField = games.get(idGame).secondPlayer.battleField;
+  else
+    enemyBattleField = games.get(idGame).firstPlayer.battleField;
+
+  if (enemyBattleField[x][y] === 0) {
+    enemyBattleField[x][y] = -1;
+    return 'miss';
+  }
+
+  if (enemyBattleField[x][y] === -1 ) { // попытка выстрелить в уже использованную точку
+    return null;
+  }
+
+  if (enemyBattleField[x][y] === 1) {
+    // проверить на 'попал'/'прибил'
+    enemyBattleField[x][y] = 2;
+    return 'shot';
+  }
+
+  return 'miss';
 }
